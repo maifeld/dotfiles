@@ -1,13 +1,30 @@
 " don't beep, flash the screen window
 set visualbell
 
+" PRINTING
 " print to kprinter and select from there
-set printexpr=system('okular'\ .\ '\ '\ .\ v:fname_in)\ .\ delete(v:fname_in)\ +\ v:shell_error
+"set printexpr=system('okular'\ .\ '\ '\ .\ v:fname_in)\ .\ delete(v:fname_in)\ +\ v:shell_error
+set printoptions+=paper:letter,syntax:y,wrap:y
+" Print Header options are the same as Statusline options
+" The general format for a code in a status line is shown in :help statusline:
+" %-0{minwid}.{maxwid}{item}
+" Everything except the % and the item is optional.
+set printheader=%<		" Left side
+set printheader+=%{strftime('%Y-%b-%d\ %H:%M')}		" add date (17 chars)
+set printheader+=\ \ %.60F		" full path truncated to rightmost X characters
+set printheader+=%=		" switch to right side
+set printheader+=Page\ %N" (6+ chars)
+set printexpr=PrintFile(v:fname_in)
+function PrintFile(fname)
+	call system("okular " . a:fname)
+	call delete(a:fname)
+	return v:shell_error
+endfunc
 
 filetype plugin on
 filetype indent on
 
-
+" TABBING
 set tabstop=4
 set softtabstop=4
 set shiftwidth=4
@@ -42,13 +59,34 @@ set wrapmargin=0
 " keep your existing 'textwidth' settings for most lines in your file, but not have Vim automatically reformat when typing on existing lines
 set formatoptions+=l
 
+set listchars=trail:·,precedes:«,extends:»,eol:↲,tab:▸\ ,nbsp:☠
+" ASCII-only
+" set listchars=tab:>-,trail:~,extends:>,precedes:<
+" set list listchars=tab:▸␣,trail:·
+" set listchars=eol:·,nbsp:☠,tab:→\ ,trail:☠,extends:>,precedes:<
+set list
 
-" My favorite colors
-"colorscheme pablo
-colorscheme jellybeans
+" https://alvinalexander.com/linux/vi-vim-editor-color-scheme-syntax
+" Highlight special characters:
+" The listchars option uses the "NonText" highlighting group for "eol", "extends" and "precedes", and the "SpecialKey" highlighting group for "nbsp", "tab" and "trail"
+function! MyHighlights() abort
+	highlight Visual		cterm=NONE ctermbg=76  ctermfg=16  gui=NONE guibg=#5fd700 guifg=#000000
+	highlight StatusLine	cterm=NONE ctermbg=231 ctermfg=160 gui=NONE guibg=#ffffff guifg=#d70000
+	highlight Normal		cterm=NONE ctermbg=0               gui=NONE guibg=Black
+	highlight NonText		cterm=NONE ctermbg=0               gui=NONE guibg=#111111 guifg=#222222
+	highlight SpecialKey	cterm=NONE ctermbg=0               gui=NONE guibg=#111111 guifg=#222222
+	highlight Comment		ctermbg=DarkGray
+	highlight Constant		ctermbg=Blue
+	highlight Special		ctermbg=DarkMagenta
+	highlight Cursor		ctermbg=Green
+	highlight ExtraWhitespace ctermbg=red guibg=red
+	highlight RedundantSpaces term=standout ctermbg=Grey guibg=#ffddcc
+endfunction
 
-" to look at colors, use:
-" :help colortest.vim
+augroup MyColors
+    autocmd!
+    autocmd ColorScheme * call MyHighlights()
+augroup END
 
 " Handle whitespaces
 highlight ExtraWhitespace ctermbg=red guibg=red
@@ -58,20 +96,19 @@ autocmd InsertEnter * match ExtraWhitespace /\s\+\%#\@<!$/
 autocmd InsertLeave * match ExtraWhitespace /\s\+$/
 autocmd BufWinLeave * call clearmatches()
 
-" set listchars=tab:>-,trail:~,extends:>,precedes:<
-" set list listchars=tab:▸␣,trail:·
-set listchars=eol:·,nbsp:☠,tab:→\ ,trail:☠,extends:>,precedes:<
-set list
-
-" Highlight special characters:
-" The listchars option uses the "NonText" highlighting group for "eol", "extends" and "precedes", and the "SpecialKey" highlighting group for "nbsp", "tab" and "trail"
-highlight SpecialKey ctermfg=darkgray guifg=darkgray
-highlight NonText ctermfg=darkgray guifg=darkgray
-
-
 " Highlight redundant spaces (spaces at the end of the line, spaces before or after tabs):
 highlight RedundantSpaces term=standout ctermbg=Grey guibg=#ffddcc
 call matchadd('RedundantSpaces', '\(\s\+$\| \+\ze\t\|\t\zs \+\)\(\%#\)\@!')
+
+" My favorite colors
+"colorscheme pablo
+colorscheme jellybeans
+
+" to look at colors, use:
+" :help colortest.vim
+
+" turn on syntax highlighting always
+syntax on
 
 " Min num of lines to scroll horizontally
 "set sidescroll 1
@@ -119,7 +156,6 @@ call SetupDiffMappings()
 " Entering diff mode from within vim - diffsplit, etc.
 autocmd FilterWritePost * call SetupDiffMappings()
 
-
 " With the following you can visually select text
 " then press ~ to convert the text to UPPER CASE, then to lower case, then to
 " Title Case. Keep pressing ~ until you get the case you want.
@@ -137,3 +173,4 @@ function! TwiddleCase(str)
   return result
 endfunction
 vnoremap ~ y:call setreg('', TwiddleCase(@"), getregtype(''))<CR>gv""Pgv
+
